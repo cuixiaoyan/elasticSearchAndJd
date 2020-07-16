@@ -201,11 +201,11 @@ elasticsearch的索引和Lucene的索引对比
 
 ![image-20200712094410922](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712094410922.png)
 
-## 关于索引的基本操作
+# 关于索引的基本操作
 
 **所有执行操作，都需要光标选中，然后运行**
 
-1、创建一个索引!
+### 创建一个索引!
 
 ```shell
 # 格式如下
@@ -239,7 +239,7 @@ PUT /user/type/1
 
 te布尔值类型 boolean 二进制类型 binary 等等......
 
-4、指定字段的类型
+### 指定字段的类型
 
 ```bash
 PUT /test2
@@ -266,7 +266,7 @@ PUT /test2
 
 ![image-20200712101915341](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712101915341.png)
 
-5、查看默认的信息
+### 查看默认的信息
 
 ```bash
 PUT /test3/_doc/1
@@ -288,9 +288,35 @@ GET /test3
 
 ![image-20200712102356473](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712102356473.png)
 
+# 关于文档的基本操作(重点)
+
+## 增删改
+
+#### 添加数据
+
+```bash
+PUT /userlist/user/1
+{
+  "name": "小崔",
+  "age": 18,
+  "desc": "爱写代码的程序员",
+  "tags": [
+    "健身",
+    "做法",
+    "直男"
+  ]
+}
+```
+
+![image-20200712105400015](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712105400015.png)
+
+![image-20200712105429329](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712105429329.png)
+
+
+
 > 修改 提交还是使用PUT 即可! 然后覆盖!最新办法!
 
-曾经!
+#### 修改数据
 
 ```bash
 PUT /test3/_doc/1
@@ -316,7 +342,13 @@ POST /test3/_doc/1/_update
 
 ![image-20200712104517225](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712104517225.png)
 
+3、修改数据，推荐第二种方式。
+
+![image-20200712105911947](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712105911947.png)
+
 > 删除索引
+
+#### 删除索引
 
 通过DELETE 命令实现删除、 根据你的请求来判断是删除索引还是删除文档记录!
 
@@ -324,37 +356,7 @@ POST /test3/_doc/1/_update
 
 ![image-20200712104926883](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712104926883.png)
 
-# 关于文档的基本操作(重点)
 
-> 基本操作
-
-1、添加数据
-
-```bash
-PUT /userlist/user/1
-{
-  "name": "小崔",
-  "age": 18,
-  "desc": "爱写代码的程序员",
-  "tags": [
-    "健身",
-    "做法",
-    "直男"
-  ]
-}
-```
-
-![image-20200712105400015](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712105400015.png)
-
-![image-20200712105429329](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712105429329.png)
-
-2、获取数据 GET
-
-![image-20200712105537554](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712105537554.png)
-
-3、修改数据，推荐第二种方式。
-
-![image-20200712105911947](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712105911947.png)
 
 ## 简单搜索!
 
@@ -394,3 +396,288 @@ GET userlist/user/_search
 > 分页查询
 
 ![image-20200712112345264](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200712112345264.png)
+
+我们可以通过设置"from"和"size"参数来设置分页查询的相关信息。
+
+### 布尔值查询
+
+通过布尔值查询的方式我们可以实现类似于数据库的多条件查询：
+
+![image-20200715161943487](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200715161943487.png)
+
+例如通过这个must指令就可以实现多条件查询，在上图中，只有同时满足name中包含老崔，并且年龄为88的数据才会被查询出。简单的来说满足这两个条件就会返回true的布尔值然后被查询出来，所以被叫做布尔值查询，相当于sql语句中的where and条件语句。
+
+![image-20200715162308324](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200715162308324.png)
+
+而should命令则表示后方的两个条件只需要满足其中之一即可，就类似于sql语句中的where or条件语句。
+
+![image-20200715162411744](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200715162411744.png)
+
+同理，must_not表示查询出不满足条件的数据，例如上图查询出年龄不为18的信息，相当于sql中的not条件语句。
+
+### 过滤查询操作
+
+在满足多种条件查询的同时，es也支持我们对查询的数据进行进一步的筛选过滤。
+
+![image-20200715162949063](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200715162949063.png)
+
+通过上图的配置可以实现按照年龄大小进行进一步过滤的操作，gte是大于等于操作，lte是小于等于操作，gt只表示大于操作，lt只表示小于操作。
+
+同时，也可以同时设置大于和小于来进行值的区间搜索操作，相当于sql中的between and条件。
+
+![image-20200715163034131](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200715163034131.png)
+
+### 匹配多个条件查询
+
+匹配多个条件查询就有点类似于sql中的in关键字。
+
+![image-20200715163439604](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200715163439604.png)
+
+如图所示，tags是兴趣标签，在数据中是以数组的形式存在的，也就是说有多个值，通过这种方式就可以进行多个值的随意匹配。
+
+### 精确匹配term
+
+**term精确匹配和match的不同：**
+
+term会将条件依据倒排索引进行精确匹配，而match则会将查询条件进行分词然后再匹配。简单的来说，match会产生类似与模糊查询的效果，而term不会，条件匹配不上即使数据包含查询条件也不会被查询出来。
+
+**关于text和keyword类型：**
+
+text类型和keyword的不同之处在于，text会被分词器进行分词，而keyword不会被分词器分词。
+
+![image-20200715164003928](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200715164003928.png)
+
+### 高亮查询
+
+ElasticSearch同时也支持高亮查询，他会将查询结果中的查询条件关键字进行自动的高亮显示。
+
+```bash
+
+ 
+GET /userlist/user/_search
+{
+  "query": {
+    "match": {
+      "name": "老崔"
+    }
+  },
+  "highlight": {
+    "pre_tags": "<p class ='key' style = 'color=red'>",
+    "post_tags": "</p>",
+    "fields": {
+      "name": {}
+    }
+  }
+}
+```
+
+![image-20200715170827489](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200715170827489.png)
+
+# SpringBoot集成ElasticSearch
+
+此次SpringBoot集成ElasticSearch采用SpringBoot脚手架来进行学习。使用gradle来构建，顺便学习grade。
+
+1. ElasticSearch版本要与你安装的版本一致。
+2. 测试类的话，需要加上@SpringBootTest注解。
+
+## 创建项目
+
+### 方式一
+
+![image-20200716135005558](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200716135005558.png)
+
+![image-20200716135139461](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200716135139461.png)
+
+### 方式二
+
+创建一个新的maven项目，或者gradle项目。
+
+![image-20200716135354952](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200716135354952.png)
+
+> 引入jackson和lombok
+
+```java
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.3.1.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.9.RELEASE'
+}
+
+group 'com.cxy'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    //lombok
+    implementation 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    //jackson
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.1'
+
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+}
+```
+
+
+
+#### 配置文件
+
+```java
+package com.cxy.es.config;
+
+import org.apache.http.HttpHost;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * @program: elasticSearch
+ * @description: 配置类
+ * @author: cuixy
+ * @create: 2020-07-15 17:50
+ **/
+@Configuration
+public class ElasticSearchClientConfig {
+
+    @Bean
+    public RestHighLevelClient restHighLevelClient() {
+        RestHighLevelClient client = new RestHighLevelClient(
+                RestClient.builder(
+                        //ES集群的相关信息，如果有多个就配置多个
+                        new HttpHost("192.168.106.129", 9200, "http")
+                )
+        );
+        return client;
+    }
+
+
+}
+```
+
+### 索引测试类
+
+```java
+package com.cxy.es;
+
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.GetIndexRequest;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.io.IOException;
+
+/**
+ * @program: elasticSearch
+ * @description: 索引测试类
+ * @author: cuixy
+ * @create: 2020-07-15 17:59
+ **/
+@SpringBootTest
+public class esIndexTest {
+
+    @Autowired
+    RestHighLevelClient restHighLevelClient;
+
+    //测试索引的创建
+    @Test
+    public void createIndex() throws IOException {
+        //创建索引请求
+        CreateIndexRequest java_index = new CreateIndexRequest("cxy1_index");
+        //客户端执行请求创建索引
+        CreateIndexResponse createIndexResponse = restHighLevelClient.indices().create(java_index, RequestOptions.DEFAULT);
+    }
+
+    //判断索引是否存在
+    @Test
+    void existIndex() throws IOException {
+        GetIndexRequest cxy1_index = new GetIndexRequest("cxy1_index");
+        System.out.println(restHighLevelClient.indices().exists(cxy1_index, RequestOptions.DEFAULT));
+    }
+
+    //删除索引
+    @Test
+    void deleteIndex() throws IOException {
+        DeleteIndexRequest java_index = new DeleteIndexRequest("cxy1_index");
+        AcknowledgedResponse delete = restHighLevelClient.indices().delete(java_index, RequestOptions.DEFAULT);
+        System.out.println(delete.isAcknowledged());
+    }
+
+
+}
+```
+
+### 文档测试类
+
+```java
+package com.cxy.es;
+
+import com.cxy.es.entity.User;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.io.IOException;
+
+/**
+ * @program: elasticSearch
+ * @description: es文档测试类
+ * @author: cuixy
+ * @create: 2020-07-16 14:27
+ **/
+@SpringBootTest
+public class esDocumentTest {
+
+    @Autowired
+    RestHighLevelClient restHighLevelClient;
+
+    @Test
+    public void addDocument() throws IOException {
+        //创建对象
+        User user = new User();
+        user.setName("崔笑颜1");
+        user.setAge(18);
+        //创建请求
+        IndexRequest user_index = new IndexRequest("user_index");
+        //文档编号
+        user_index.id("2");
+        //将对象转换成json放入请求中
+        ObjectMapper objectMapper = new ObjectMapper();
+        user_index.source(objectMapper.writeValueAsString(user), XContentType.JSON);
+        //客户端发送请求，接收响应结果
+        IndexResponse index = restHighLevelClient.index(user_index, RequestOptions.DEFAULT);
+        //打印响应结果
+        System.out.println(index.toString());  //查看返回的具体json信息
+        System.out.println(index.status());  //查看操作的状态
+
+    }
+
+
+}
+```
+
+![image-20200716151025878](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200716151025878.png)
+
+![image-20200716151043734](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200716151043734.png)
