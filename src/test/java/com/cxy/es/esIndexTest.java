@@ -29,7 +29,7 @@ public class esIndexTest {
     @Test
     public void createIndex() throws IOException {
         //创建索引请求
-        CreateIndexRequest java_index = new CreateIndexRequest("cxy1_index");
+        CreateIndexRequest java_index = new CreateIndexRequest("jd_index");
         //客户端执行请求创建索引
         CreateIndexResponse createIndexResponse = restHighLevelClient.indices().create(java_index, RequestOptions.DEFAULT);
     }
@@ -44,7 +44,7 @@ public class esIndexTest {
     //删除索引
     @Test
     void deleteIndex() throws IOException {
-        DeleteIndexRequest java_index = new DeleteIndexRequest("cxy_index");
+        DeleteIndexRequest java_index = new DeleteIndexRequest("jd_index");
         AcknowledgedResponse delete = restHighLevelClient.indices().delete(java_index, RequestOptions.DEFAULT);
         System.out.println(delete.isAcknowledged());
     }

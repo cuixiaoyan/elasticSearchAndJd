@@ -156,10 +156,8 @@ public class esDocumentTest {
         BulkRequest bulkRequest = new BulkRequest();
         List<User> userList = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
-            User user = new User();
-            user.setName("崔笑颜" + i);
-            user.setAge(i);
-            userList.add(user);
+
+            userList.add(new User("崔笑颜" + i, i));
         }
         for (int j = 0; j < userList.size(); j++) {
             ObjectMapper objectMapper = new ObjectMapper();

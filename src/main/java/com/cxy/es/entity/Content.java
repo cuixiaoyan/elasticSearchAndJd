@@ -1,22 +1,24 @@
 package com.cxy.es.entity;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
  * @program: elasticSearch
- * @description: 用户测试类
+ * @description: 京东商品实体类
  * @author: cuixy
- * @create: 2020-07-16 14:31
+ * @create: 2020-07-18 11:10
  **/
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class User {
-    private String name;
-    private Integer age;
+public class Content {
+    private String img;
+
+    private String title;
+
+    private String price;
 
 
 }

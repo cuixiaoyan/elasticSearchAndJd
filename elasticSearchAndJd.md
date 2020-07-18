@@ -820,3 +820,218 @@ public class esDocumentTest {
 
 # 模拟京东项目
 
+此次项目实战采用java爬虫爬取京东的数据放在es数据源中，然后通过页面来模拟京东搜索。
+
+## 创建项目
+
+**创建项目并引入相关pom依赖**
+
+相关文件：
+
+```java
+		implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-configuration-processor'
+  
+		// https://mvnrepository.com/artifact/org.jsoup/jsoup
+    compile group: 'org.jsoup', name: 'jsoup', version: '1.13.1'
+```
+
+静态资源文件都可以从我的项目中直接拉取
+
+![image-20200718102010348](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200718102010348.png)
+
+## 项目结构如下
+
+![image-20200718113514744](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200718113514744.png)
+
+### Controller
+
+```java
+package com.cxy.es.controller;
+
+import com.cxy.es.service.JdService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.io.IOException;
+
+/**
+ * @program: elasticSearch
+ * @description: 控制层
+ * @author: cuixy
+ * @create: 2020-07-18 10:20
+ **/
+@Controller
+public class IndexController {
+
+    @Autowired
+    JdService jdService;
+
+
+    //添加数据到es接口
+    @GetMapping("/insert/{keyword}")
+    @ResponseBody
+    public Boolean insertToEs(@PathVariable("keyword") String keyword) throws IOException {
+        return jdService.insertToEs(keyword);
+    }
+
+    /**
+     * 跳转首页
+     *
+     * @return
+     */
+    @RequestMapping("/")
+    public String toIndex() {
+        return "index";
+    }
+
+}
+```
+
+### Service
+
+```java
+package com.cxy.es.service;
+
+import com.cxy.es.entity.Content;
+import com.cxy.es.utils.HtmlParseUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.util.List;
+
+/**
+ * @program: elasticSearch
+ * @description:
+ * @author: cuixy
+ * @create: 2020-07-18 11:19
+ **/
+@Service
+public class JdService {
+
+
+    @Autowired
+    RestHighLevelClient restHighLevelClient;
+
+    //批量插入使用jsoup查询到的数据
+    public Boolean insertToEs(String keyword) throws IOException {
+        List<Content> contents = HtmlParseUtils.parseJD(keyword);
+        //创建批量插入对象
+        BulkRequest bulkRequest = new BulkRequest();
+        ObjectMapper objectMapper = new ObjectMapper();
+        //封装数据
+        for (int i = 0; i < contents.size(); i++) {
+
+            bulkRequest.add(
+                    new IndexRequest("jd_index")
+                            .source(objectMapper.writeValueAsString(contents.get(i)), XContentType.JSON)
+            );
+        }
+        //发送请求进行数据插入
+        BulkResponse bulk = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+        return !bulk.hasFailures();  //返回结果是是否出现错误，插入成功则返回false，所以在此要取反
+    }
+}
+```
+
+### 实体类
+
+```java
+package com.cxy.es.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * @program: elasticSearch
+ * @description: 京东商品实体类
+ * @author: cuixy
+ * @create: 2020-07-18 11:10
+ **/
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Content {
+    private String img;
+
+    private String title;
+
+    private String price;
+
+
+}
+```
+
+### 工具类
+
+```java
+package com.cxy.es.utils;
+
+import com.cxy.es.entity.Content;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * @program: elasticSearch
+ * @description: 爬取京东商品信息。
+ * @author: cuixy
+ * @create: 2020-07-18 11:08
+ **/
+public class HtmlParseUtils {
+
+    public static void main(String[] args) throws IOException {
+        parseJD("java").forEach(System.out::println);
+    }
+
+    public static List<Content> parseJD(String keyWord) throws IOException {
+        //获取请求  https://search.jd.com/Search?keyword=java
+        String url = "https://search.jd.com/Search?keyword=" + keyWord;
+        //根据url解析网页  Jsoup返回的document对象就是javascript中的页面对象，所有在javascript中能够使用的方法在这里都能使用
+        Document document = Jsoup.parse(new URL(url), 30000);   //第二个参数为最大连接时间，超时即报错
+        //通过document对象获取页面上的一部分元素
+        Element element = document.getElementById("J_goodsList");  //element是获取的商品列表的主要信息
+        //获取到所有的li元素，商品信息部分是用ul来装载的，所以要先获取到所有的li元素
+        Elements elements = element.getElementsByTag("li");
+        //通过li标签我们可以获取到每一个li标签中的商品信息，在此我们主要获取三个部分：图片地址，标题，价格
+        ArrayList<Content> contentList = new ArrayList<>();
+        for (Element el : elements) {  //每一个el都是一个li
+            //获取图片地址，在此获取的并不是img的src属性，而是source-data-lazy-img属性
+            //原因是因为京东为了追求网页渲染的速度，会在图片渲染之前先渲染一个默认的页面，而真实的图片路径会放在source-data-lazy-img中进行懒加载
+            String img = el.getElementsByTag("img").eq(0).attr("src");
+            String title = el.getElementsByClass("p-name").eq(0).text();
+            String price = el.getElementsByClass("p-price").eq(0).text();
+            Content content = new Content(img, title, price);
+            contentList.add(content);
+        }
+        return contentList;
+    }
+
+
+}
+```
+
+### 效果如下
+
+http://localhost:8080/insert/java 请求接口拉取数据，添加到es中。
+
+![image-20200718113759893](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200718113759893.png)
