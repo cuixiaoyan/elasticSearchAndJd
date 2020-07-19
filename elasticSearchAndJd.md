@@ -1035,3 +1035,246 @@ public class HtmlParseUtils {
 http://localhost:8080/insert/java 请求接口拉取数据，添加到es中。
 
 ![image-20200718113759893](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200718113759893.png)
+
+## 接口分页带条件查询信息
+
+数据有了之后，就是做数据展示，在此接口接收查询的关键字和分页的信息进行分页并带条件的查询：
+
+**Controller接口代码**
+
+```java
+ //分页查询数据接口
+    @GetMapping("/search/{keyword}/{pageNo}/{pageSize}")
+    public List<Map<String, Object>> search(@PathVariable("keyword") String keyword,
+                                            @PathVariable("pageNo") int pageNo,
+                                            @PathVariable("pageSize") int pageSize) throws IOException {
+
+        return jdService.search(keyword, pageNo, pageSize);
+    }
+```
+
+**service代码**
+
+```java
+ //分页查询，高亮效果。
+    public List<Map<String, Object>> search(String keyword, int pageNo, int pageSize) throws IOException {
+        if (pageNo == 0) {
+            pageNo = 1;
+        }
+        //创建搜索对象
+        SearchRequest jd_index = new SearchRequest("jd_index");
+        //构建搜索条件
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        //配置分页信息
+        searchSourceBuilder.from(pageNo);
+        searchSourceBuilder.size(pageSize);
+
+        //封装高亮显示条件
+        HighlightBuilder highlightBuilder = new HighlightBuilder();
+      	highlightBuilder.requireFieldMatch(true);//多个关键字高亮？
+        highlightBuilder.field("title");  //对哪个字段进行高亮
+        highlightBuilder.preTags("<span style='color:red'>");  //设置高亮前缀
+        highlightBuilder.postTags("</span>");  //高亮后缀
+
+
+        //构建搜索条件
+        TermQueryBuilder query = QueryBuilders.termQuery("title", keyword);
+        //封装搜索条件
+        searchSourceBuilder.query(query);
+        //封装高亮搜索条件
+        searchSourceBuilder.highlighter(highlightBuilder);
+
+        //封装搜索对象
+        jd_index.source(searchSourceBuilder);
+        //发送请求
+        SearchResponse search = restHighLevelClient.search(jd_index, RequestOptions.DEFAULT);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (SearchHit hit : search.getHits().getHits()) {
+
+            Map<String, HighlightField> highlightFields = hit.getHighlightFields();
+            HighlightField title = highlightFields.get("title");  //高亮之后的title
+            Map<String, Object> sourceAsMap = hit.getSourceAsMap();  //未高亮之前的结果集
+            //接下来就是将高亮的title与结果集中未高亮的title进行替换
+            if (title != null) {
+                Text[] fragments = title.fragments();
+                String newTitle = "";
+                for (Text text : fragments) {
+                    newTitle += text;
+                }
+                sourceAsMap.put("title", newTitle);  //替换掉未高亮的title
+            }
+            list.add(sourceAsMap);
+
+
+        }
+
+        return list;
+
+    }
+```
+
+在项目中引入vue.min.js和axios.min.js文件：
+
+```javascript
+		<script th:src="@{/js/jquery.min.js}"></script>
+    <script th:src="@{/js/vue.min.js}"></script>
+    <script th:src="@{/js/axios.min.js}"></script>
+```
+
+修改页面信息，动态绑定搜索框的数据和搜索按钮的单击事件，实现单击搜索按钮就发送请求进行ES库的查询，并且使用v-for将查询结果进行遍历显示。
+
+```html
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="utf-8"/>
+    <title>cxy-ES仿京东实战</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+    <script th:src="@{/js/jquery.min.js}"></script>
+    <script th:src="@{/js/vue.min.js}"></script>
+    <script th:src="@{/js/axios.min.js}"></script>
+</head>
+
+<body class="pg">
+<div class="page" id="app">
+    <div id="mallPage" class=" mallist tmall- page-not-market ">
+
+        <!-- 头部搜索 -->
+        <div id="header" class=" header-list-app">
+            <div class="headerLayout">
+                <div class="headerCon ">
+                    <!-- Logo-->
+                    <h1 id="mallLogo">
+                        <img th:src="@{/images/jdlogo.png}" alt="">
+                    </h1>
+
+                    <div class="header-extra">
+
+                        <!--搜索-->
+                        <div id="mallSearch" class="mall-search">
+                            <form name="searchTop" class="mallSearch-form clearfix">
+                                <fieldset>
+                                    <legend>天猫搜索</legend>
+                                    <div class="mallSearch-input clearfix">
+                                        <div class="s-combobox" id="s-combobox-685">
+                                            <div class="s-combobox-input-wrap">
+                                                <input type="text" v-model="keyword" autocomplete="off" id="mq"
+                                                       class="s-combobox-input" aria-haspopup="true">
+                                            </div>
+                                        </div>
+                                        <button type="submit" @click.prevent="searchKey" id="searchbtn">搜索</button>
+                                    </div>
+                                </fieldset>
+                            </form>
+                            <ul class="relKeyTop">
+                                <li><a>Java</a></li>
+                                <li><a>前端</a></li>
+                                <li><a>Linux</a></li>
+                                <li><a>大数据</a></li>
+                                <li><a>理财</a></li>
+                                <li><a>炒股</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 商品详情页面 -->
+        <div id="content">
+            <div class="main">
+                <!-- 品牌分类 -->
+                <form class="navAttrsForm">
+                    <div class="attrs j_NavAttrs" style="display:block">
+                        <div class="brandAttr j_nav_brand">
+                            <div class="j_Brand attr">
+                                <div class="attrKey">
+                                    品牌
+                                </div>
+                                <div class="attrValues">
+                                    <ul class="av-collapse row-2">
+                                        <li><a href="#"> vue </a></li>
+                                        <li><a href="#"> Java </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- 排序规则 -->
+                <div class="filter clearfix">
+                    <a class="fSort fSort-cur">综合<i class="f-ico-arrow-d"></i></a>
+                    <a class="fSort">人气<i class="f-ico-arrow-d"></i></a>
+                    <a class="fSort">新品<i class="f-ico-arrow-d"></i></a>
+                    <a class="fSort">销量<i class="f-ico-arrow-d"></i></a>
+                    <a class="fSort">价格<i class="f-ico-triangle-mt"></i><i class="f-ico-triangle-mb"></i></a>
+                </div>
+
+                <!-- 商品详情 -->
+                <div class="view grid-nosku">
+
+                    <div class="product" v-for="res in results">
+                        <div class="product-iWrap">
+                            <!--商品封面-->
+                            <div class="productImg-wrap">
+                                <a class="productImg">
+                                    <img :src="res.img">
+                                </a>
+                            </div>
+                            <!--价格-->
+                            <p class="productPrice">
+                                <em>{{res.price}}</em>
+                            </p>
+                            <!--标题-->
+                            <p class="productTitle">
+                                <a v-html="res.title"></a>
+                            </p>
+                            <!-- 店铺名 -->
+                            <div class="productShop">
+                                <span>店铺：xxx </span>
+                            </div>
+                            <!-- 成交信息 -->
+                            <p class="productStatus">
+                                <span>月成交<em>999笔</em></span>
+                                <span>评价 <a>3</a></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    new Vue({
+        el: "#app",
+        data: {
+            keyword: "",//搜索条件
+            results: [] //返回结果集
+        },
+        methods: {
+            searchKey() {
+                let key = this.keyword;
+                console.log(key);
+                axios.get("search/" + key + "/1/10").then(result => {
+                    console.log(result);
+                    this.results = result.data;
+                })
+            }
+        }
+    })
+
+</script>
+
+</body>
+</html>
+```
+
+# 效果如下
+
+完结撒花。
+
+![image-20200719104117538](https://gitee.com/cuixiaoyan/uPic/raw/master/uPic/image-20200719104117538.png)
